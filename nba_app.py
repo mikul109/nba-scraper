@@ -41,7 +41,7 @@ navbar = dbc.Navbar(
 )
 ##############################################################################################
 app.layout = html.Div( 
-    style={'height': 1000, "background-color": 'rgba(228, 222, 249, 0.65)'},
+    style={'height': 1500, "background-color": 'rgba(228, 222, 249, 0.65)'},
     children=[
         html.Div([navbar]),
         html.Div(
