@@ -9,40 +9,17 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import os
-#########################################################################################
-url = 'https://www.basketball-reference.com/leagues/NBA_2021_per_game.html'
-page = requests.get(url)
-
-soup = BeautifulSoup(page.content, 'html.parser')
-
-table = soup.find_all(class_="full_table")
-
-head = soup.find(class_="thead")
-column_names_raw = [head.text for item in head][0]
-
-column_names_clean = column_names_raw.replace("\n", ",").split(",")[2:-1]
-
-players = []
-for i in range(len(table)):
-    player_ = []
-    for td in table[i].find_all("td"):
-        player_.append(td.text)
-    players.append(player_)
-df = pd.DataFrame(players, columns = column_names_clean).set_index("Player")
-df.index = df.index.str.replace('*', '')
-
-df = df.reset_index()
-
 #####################################################################################
-### get dropdown options for player picker
-def get_options(list_players):
+### get dropdown options
+def get_options(list_):
     dict_list = []
-    for i in list_players:
+    for i in list_:
         dict_list.append({'label': i, 'value': i})
     return dict_list
 
 ########################################################################################
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
+server = app.server
 
 PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
 
@@ -70,6 +47,7 @@ app.layout = html.Div(
         html.Div(
             style={'margin': 15},
             children=[ 
+            html.H5("Year"),
             dcc.Input(
                 id='year-input',
                 placeholder="Input a Year",
@@ -176,7 +154,6 @@ app.layout = html.Div(
                 children=[ 
                 dcc.Dropdown(
                     id='player-picker',
-                    options=get_options(df['Player']),
                     placeholder="Select a Player",
                     value=[],
                     multi=True
@@ -187,7 +164,6 @@ app.layout = html.Div(
                 children=[ 
                 dcc.Dropdown(
                     id='pos-picker',
-                    options=get_options(df['Pos'].unique()),
                     placeholder="Select a Position",
                     value=[],
                     multi=True
@@ -198,7 +174,6 @@ app.layout = html.Div(
                 children=[ 
                 dcc.Dropdown(
                     id='tm-picker',
-                    options=get_options(df['Tm'].unique()),
                     placeholder="Select a Team",
                     value=[],
                     multi=True
@@ -208,6 +183,7 @@ app.layout = html.Div(
     ])
 
 #####################################################################
+## Slider labels
 @app.callback(
     dash.dependencies.Output('age-slider-container', 'children'),
     [dash.dependencies.Input('age-slider', 'value')])
@@ -243,9 +219,100 @@ def update_output(value):
     [dash.dependencies.Input('ft-slider', 'value')])
 def update_output(value):
     return f"FT Range: {value}"
+#####################################################################
+## Dropdown options
+@app.callback(
+    dash.dependencies.Output('player-picker', 'options'),
+    [dash.dependencies.Input('year-input', 'value')])
+def update_dropdown(year):
+    url = f'https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html'
+    page = requests.get(url)
+
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+    table = soup.find_all(class_="full_table")
+
+    head = soup.find(class_="thead")
+    column_names_raw = [head.text for item in head][0]
+
+    column_names_clean = column_names_raw.replace("\n", ",").split(",")[2:-1]
+
+    players = []
+    for i in range(len(table)):
+        player_ = []
+        for td in table[i].find_all("td"):
+            player_.append(td.text)
+        players.append(player_)
+    df = pd.DataFrame(players, columns = column_names_clean).set_index("Player")
+    df.index = df.index.str.replace('*', '')
+
+    df = df.reset_index()
+
+    options=get_options(df['Player'])
+    return options
+
+@app.callback(
+    dash.dependencies.Output('pos-picker', 'options'),
+    [dash.dependencies.Input('year-input', 'value')])
+def update_dropdown(year):
+    url = f'https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html'
+    page = requests.get(url)
+
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+    table = soup.find_all(class_="full_table")
+
+    head = soup.find(class_="thead")
+    column_names_raw = [head.text for item in head][0]
+
+    column_names_clean = column_names_raw.replace("\n", ",").split(",")[2:-1]
+
+    players = []
+    for i in range(len(table)):
+        player_ = []
+        for td in table[i].find_all("td"):
+            player_.append(td.text)
+        players.append(player_)
+    df = pd.DataFrame(players, columns = column_names_clean).set_index("Player")
+    df.index = df.index.str.replace('*', '')
+
+    df = df.reset_index()
+
+    options=get_options(df['Pos'].unique())
+    return options
+
+@app.callback(
+    dash.dependencies.Output('tm-picker', 'options'),
+    [dash.dependencies.Input('year-input', 'value')])
+def update_dropdown(year):
+    url = f'https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html'
+    page = requests.get(url)
+
+    soup = BeautifulSoup(page.content, 'html.parser')
+
+    table = soup.find_all(class_="full_table")
+
+    head = soup.find(class_="thead")
+    column_names_raw = [head.text for item in head][0]
+
+    column_names_clean = column_names_raw.replace("\n", ",").split(",")[2:-1]
+
+    players = []
+    for i in range(len(table)):
+        player_ = []
+        for td in table[i].find_all("td"):
+            player_.append(td.text)
+        players.append(player_)
+    df = pd.DataFrame(players, columns = column_names_clean).set_index("Player")
+    df.index = df.index.str.replace('*', '')
+
+    df = df.reset_index()
+
+    options=get_options(df['Tm'].unique())
+    return options
 
 #####################################################################
-
+## Table update
 @app.callback(
     dash.dependencies.Output('table', 'figure'),
     [dash.dependencies.Input('year-input', 'value'),
