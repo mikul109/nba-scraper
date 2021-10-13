@@ -61,7 +61,11 @@ navbar = dbc.Navbar(
 app.layout = html.Div( 
     style={'height': 2000},
     children=[
-        html.Div([navbar]),
+        html.Div(
+        style={'width': '100%'},
+        children=[
+            navbar
+        ]),
         html.Div(
             style={'margin': 15},
             children=[ 
@@ -73,7 +77,7 @@ app.layout = html.Div(
             )
         ]),
         html.Div(
-            style={'height': 500, 'width': 1250, 'margin': 100},
+            style={'height': 500, 'width': '100%', 'margin': '100px auto'},
             children=[ 
             dash_table.DataTable(
                     id='datatable-interactivity',
@@ -95,7 +99,7 @@ app.layout = html.Div(
                     page_size= 10,
                     style_table={'overflowX': 'auto'},
                 ),
-                html.Div(style={'width': 620, 'margin-top': 100},
+                html.Div(style={'width': 620, 'margin': '100px auto'},
                     children=[
                     html.H5("Graph Metrics"),
                     dcc.Dropdown(style={'width': 200, 'margin-right': 10, 'display': 'inline-grid'},
@@ -105,7 +109,7 @@ app.layout = html.Div(
                     dcc.Dropdown(style={'width': 200, 'display': 'inline-grid'},
                         id='column3', options=[{'label': i, 'value': i} for i in df.columns], value="TRB"),
                     ]),
-                html.Div(style={'height': 1000, 'width': 1250, 'margin-top': 100}, 
+                html.Div(style={'height': 1000, 'width': '100%', 'margin': '100px auto'}, 
                     id='datatable-interactivity-container')
             ])
     ])
