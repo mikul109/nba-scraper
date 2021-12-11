@@ -1,5 +1,5 @@
 import dash
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
@@ -7,11 +7,13 @@ import dash_table
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import fontawesome as fa
 import os
 
 #########################################################################################
-# scrape data from 2021 table
-url = f'https://www.basketball-reference.com/leagues/NBA_2021_per_game.html'
+# scrape data from 2022 table
+year = 2022
+url = f'https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html'
 page = requests.get(url)
 
 soup = BeautifulSoup(page.content, 'html.parser')
@@ -33,25 +35,56 @@ df = pd.DataFrame(players, columns = column_names_clean).set_index("Player")
 df.index = df.index.str.replace('*', '')
 
 df = df.reset_index()
-for i in ['PTS']: 
-      df[i]  =  df[i].astype('float64')
+
+df['MP'] = df['MP'].astype(float)
+df['FG'] = df['FG'].astype(float)
+df['FGA'] = df['FGA'].astype(float)
+df['3P'] = df['3P'].astype(float)
+df['3PA'] = df['3PA'].astype(float)
+df['2P'] = df['2P'].astype(float)
+df['2PA'] = df['2PA'].astype(float)
+df['FT'] = df['FT'].astype(float)
+df['FTA'] = df['FTA'].astype(float)
+df['ORB'] = df['ORB'].astype(float)
+df['DRB'] = df['DRB'].astype(float)
+df['TRB'] = df['TRB'].astype(float)
+df['AST'] = df['AST'].astype(float)
+df['STL'] = df['STL'].astype(float)
+df['BLK'] = df['BLK'].astype(float)
+df['TOV'] = df['TOV'].astype(float)
+df['PF'] = df['PF'].astype(float)
+df['PTS'] = df['PTS'].astype(float)
 ########################################################################################
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUX, 
+    {
+        'href': 'https://use.fontawesome.com/releases/v5.8.1/css/all.css',
+        'rel': 'stylesheet',
+        'integrity': 'sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf',
+        'crossorigin': 'anonymous'
+    }]
+    )
 server = app.server
 
-PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
-
+# top nav bar
 navbar = dbc.Navbar(
     [
         html.A(
             dbc.Row(
                 [
-                    dbc.Col(html.Img(src=PLOTLY_LOGO, height="30px")),
+                    dbc.Col(html.I(className="fas fa-basketball-ball"),style={'color': 'white', 'font-size': '30px'}),
                     dbc.Col(dbc.NavbarBrand("NBA Per Game Data", className="ml-2")),
+                    
                 ],
                 align="center",
                 no_gutters=True,
             ),
+        ),
+        dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
+        dbc.Collapse(
+            html.A('Original Data', id="link_data", href="", target="_blank", style={'color': 'grey'}),
+            id="navbar-collapse",
+            is_open=False,
+            navbar=True,
         ),
     ],
     color="dark",
@@ -59,7 +92,7 @@ navbar = dbc.Navbar(
 )
 ##############################################################################################
 app.layout = html.Div( 
-    style={'height': 2000},
+    style={},
     children=[
         html.Div(
         style={'width': '100%'},
@@ -69,15 +102,29 @@ app.layout = html.Div(
         html.Div(
             style={'margin': 15},
             children=[ 
-            html.H5("Year"),
-            dcc.Input(
+            dbc.Row(style={'margin-left': 0},
+                children=[
+                html.H5("Year"),
+                html.I(className="fas fa-info-circle", title="Input a year between 1980-present"),
+                ]
+            ),
+            dcc.Input(style={'height': '30px'},
+                type="number",
                 id='year-input',
                 placeholder="Input a Year",
-                value=2021,
-            )
+                value=year,
+                min=1980, step=1,
+            ),
+            dbc.Button('Go', id='submit-val', color="secondary", n_clicks=0, style={'padding': 0, 'width': '30px', 'margin': '5px', 'height': '30px'})
         ]),
         html.Div(
-            style={'height': 500, 'width': '100%', 'margin': '100px auto'},
+            style={'width': '30%', 'margin-left': '5%'},
+            children=[
+                html.P("Type below each header(s) to filter its data, e.g. >20", 
+                    style={'margin': 'auto', 'height': 'auto', 'padding': '10px', 'background-color': 'rgb(17,157,255)', 'color': 'white', 'border-radius': '10px'})
+        ]),
+        html.Div(
+            style={'width': '90%', 'margin-top': '30px', 'margin-bottom': '100px', 'margin-left': 'auto', 'margin-right': 'auto'},
             children=[ 
             dash_table.DataTable(
                     id='datatable-interactivity',
@@ -85,19 +132,28 @@ app.layout = html.Div(
                         {"name": i, "id": i, "deletable": False, "selectable": False} for i in df.columns
                     ],
                     data=df.to_dict('records'),
-                    editable=True,
+                    editable=False,
                     filter_action="native",
                     sort_action="native",
                     sort_mode="multi",
                     column_selectable="single",
                     row_selectable="multi",
-                    row_deletable=True,
+                    row_deletable=False,
                     selected_columns=[],
                     selected_rows=[],
                     page_action="native",
                     page_current= 0,
                     page_size= 10,
                     style_table={'overflowX': 'auto'},
+                    style_header={
+                        'backgroundColor': 'white',
+                        'fontWeight': 'bold'
+                    },
+                    style_cell={
+                        'minWidth': '120px', 'maxWidth': '380px',
+                        'textAlign': 'left',
+                        'padding': '10px'
+                    }
                 ),
                 html.Div(style={'width': 620, 'margin': '100px auto'},
                     children=[
@@ -118,8 +174,9 @@ app.layout = html.Div(
 ## Table update
 @app.callback(
     Output('datatable-interactivity', 'data'),
-    [Input('year-input', 'value'),])
-def update_table(year):
+    Input('submit-val', 'n_clicks'),
+    State('year-input', 'value'))
+def update_table(click, year):
     # scrape data from table
     url = f'https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html'
     page = requests.get(url)
@@ -143,6 +200,26 @@ def update_table(year):
     df.index = df.index.str.replace('*', '')
 
     df = df.reset_index()
+
+    df['MP'] = df['MP'].astype(float)
+    df['FG'] = df['FG'].astype(float)
+    df['FGA'] = df['FGA'].astype(float)
+    df['3P'] = df['3P'].astype(float)
+    df['3PA'] = df['3PA'].astype(float)
+    df['2P'] = df['2P'].astype(float)
+    df['2PA'] = df['2PA'].astype(float)
+    df['FT'] = df['FT'].astype(float)
+    df['FTA'] = df['FTA'].astype(float)
+    df['ORB'] = df['ORB'].astype(float)
+    df['DRB'] = df['DRB'].astype(float)
+    df['TRB'] = df['TRB'].astype(float)
+    df['AST'] = df['AST'].astype(float)
+    df['STL'] = df['STL'].astype(float)
+    df['BLK'] = df['BLK'].astype(float)
+    df['TOV'] = df['TOV'].astype(float)
+    df['PF'] = df['PF'].astype(float)
+    df['PTS'] = df['PTS'].astype(float)
+
     return df.to_dict('records')
 #####################################################################
 @app.callback(
@@ -196,6 +273,24 @@ def update_graphs(col1, col2, col3, rows, derived_virtual_selected_rows):
         )
         for column in [col1, col2, col3] if column in dff
     ]
+
+@app.callback(
+    Output("navbar-collapse", "is_open"),
+    [Input("navbar-toggler", "n_clicks")],
+    [State("navbar-collapse", "is_open")],
+)
+def toggle_navbar_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output('link_data', 'href'),
+    Input('submit-val', 'n_clicks'),
+    State('year-input', 'value'))
+def update_table(click, year):
+    url = f'https://www.basketball-reference.com/leagues/NBA_{year}_per_game.html'
+    return url
 
 if __name__ == '__main__':
     app.run_server(debug=True)
